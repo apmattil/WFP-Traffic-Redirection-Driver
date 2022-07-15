@@ -539,13 +539,13 @@ TLInspectRegisterCallouts(
 
     // Register Network Callout
 
-    filterCondition.fieldKey = FWPM_CONDITION_IP_REMOTE_ADDRESS;
-    filterCondition.conditionValue.type = FWP_UINT32;
-    filterCondition.conditionValue.uint32 = RtlUlongByteSwap(remoteAddrReal.S_un.S_addr);
+    filterCondition.fieldKey = FWPM_CONDITION_IP_PROTOCOL;//FWPM_CONDITION_IP_DESTINATION_ADDRESS;//FWPM_CONDITION_IP_REMOTE_ADDRESS;
+    filterCondition.conditionValue.type = FWP_UINT8;
+    filterCondition.conditionValue.uint8 = IPPROTO_TCP;//RtlUlongByteSwap(remoteAddrReal.S_un.S_addr);
 
     status = TLInspectRegisterCalloutAndFilter(
         L"Network Outbound",
-        &FWPM_LAYER_OUTBOUND_IPPACKET_V4,
+        &FWPM_LAYER_EGRESS_VSWITCH_TRANSPORT_V4,
         &TL_INSPECT_OUTBOUND_NETWORK_CALLOUT_V4,
         &filterCondition,
         1,
@@ -555,6 +555,8 @@ TLInspectRegisterCallouts(
     if (!NT_SUCCESS(status))
         goto Exit;
 
+    filterCondition.fieldKey = FWPM_CONDITION_IP_REMOTE_ADDRESS;
+    filterCondition.conditionValue.type = FWP_UINT32;
     filterCondition.conditionValue.uint32 = RtlUlongByteSwap(remoteAddrFake.S_un.S_addr);
 
     status = TLInspectRegisterCalloutAndFilter(

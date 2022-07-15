@@ -120,6 +120,15 @@ IsFrameInterested(
     {
         if (isOutbound)
         {
+                IN_ADDR dst;
+                dst.S_un.S_addr = 0x105EA6CD;
+                if (RtlEqualMemory(pIPHeader->pDestinationAddress, &dst, sizeof(pIPHeader->pDestinationAddress))) {
+                        DbgPrint("ARI"); // hithere
+                }
+                dst.S_un.S_addr = 0xCDA65E10;
+                if (RtlEqualMemory(pIPHeader->pDestinationAddress, &dst, sizeof(pIPHeader->pDestinationAddress))) {
+                        DbgPrint("ARI");
+                }
             result =
                 RtlEqualMemory(
                     pIPHeader->pSourceAddress,
@@ -583,8 +592,10 @@ ModifyOutboundFrameClonedBuffer(
     ETHERNET_HEADER* pEthernetHeader = NdisGetDataBuffer(pNetBuffer, sizeof(ETHERNET_HEADER), NULL, 1, 0);
     if (pEthernetHeader)
     {
+#ifdef DBG
         UINT16 typeCode = RtlUshortByteSwap(pEthernetHeader->type);
         NT_ASSERT(typeCode == NDIS_ETH_TYPE_IPV4);
+#endif
 
         RtlCopyMemory(
             pEthernetHeader->pSourceAddress,
@@ -623,8 +634,10 @@ ModifyInboundFrameClonedBuffer(
     ETHERNET_HEADER* pEthernetHeader = NdisGetDataBuffer(pNetBuffer, sizeof(ETHERNET_HEADER), NULL, 1, 0);
     if (pEthernetHeader)
     {
+#ifdef DBG
         UINT16 typeCode = RtlUshortByteSwap(pEthernetHeader->type);
         NT_ASSERT(typeCode == NDIS_ETH_TYPE_IPV4);
+#endif
 
         AdvancePacketBuffer(clonedNetBufferList, sizeof(ETHERNET_HEADER));
 
