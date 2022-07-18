@@ -539,16 +539,26 @@ TLInspectRegisterCallouts(
 
     // Register Network Callout
 
+    
     filterCondition.fieldKey = FWPM_CONDITION_IP_PROTOCOL;//FWPM_CONDITION_IP_DESTINATION_ADDRESS;//FWPM_CONDITION_IP_REMOTE_ADDRESS;
     filterCondition.conditionValue.type = FWP_UINT8;
     filterCondition.conditionValue.uint8 = IPPROTO_TCP;//RtlUlongByteSwap(remoteAddrReal.S_un.S_addr);
 
+
+    /*
+    filterCondition.fieldKey = FWPM_CONDITION_IP_PROTOCOL;//FWPM_CONDITION_IP_DESTINATION_ADDRESS;//FWPM_CONDITION_IP_REMOTE_ADDRESS;
+    filterCondition.conditionValue.type = FWP_UINT8;
+    filterCondition.conditionValue.uint8 = IPPROTO_TCP;//RtlUlongByteSwap(remoteAddrReal.S_un.S_addr);
+    */
+
+    FWPM_FILTER_CONDITION filterCondition2 = { 0 };
+    
     status = TLInspectRegisterCalloutAndFilter(
         L"Network Outbound",
-        &FWPM_LAYER_EGRESS_VSWITCH_TRANSPORT_V4,
+        &FWPM_LAYER_INBOUND_IPPACKET_V4, //&FWPM_LAYER_EGRESS_VSWITCH_TRANSPORT_V4,
         &TL_INSPECT_OUTBOUND_NETWORK_CALLOUT_V4,
-        &filterCondition,
-        1,
+        &filterCondition2,
+        0,//1,
         deviceObject,
         &gOutboundNetworkCalloutId
     );
@@ -571,6 +581,7 @@ TLInspectRegisterCallouts(
     if (!NT_SUCCESS(status))
         goto Exit;
 
+    
     // Register Temp Callout
 
     status = TLInspectRegisterCalloutAndFilter(
@@ -585,6 +596,7 @@ TLInspectRegisterCallouts(
     if (!NT_SUCCESS(status))
         goto Exit;
 
+    
     status = TLInspectRegisterCalloutAndFilter(
         L"Transport Inbound",
         &FWPM_LAYER_INBOUND_TRANSPORT_V4,
@@ -598,11 +610,12 @@ TLInspectRegisterCallouts(
         goto Exit;
 
     // Register Ethernet Callout
-
+    
     filterCondition.fieldKey = FWPM_CONDITION_ETHER_TYPE;
     filterCondition.conditionValue.type = FWP_UINT16;
     filterCondition.conditionValue.uint16 = NDIS_ETH_TYPE_IPV4;
 
+    /*
     status = TLInspectRegisterCalloutAndFilter(
         L"Ethernet Outbound",
         &FWPM_LAYER_OUTBOUND_MAC_FRAME_ETHERNET,
@@ -615,6 +628,7 @@ TLInspectRegisterCallouts(
     if (!NT_SUCCESS(status))
         goto Exit;
 
+    
     status = TLInspectRegisterCalloutAndFilter(
         L"Ethernet Inbound",
         &FWPM_LAYER_INBOUND_MAC_FRAME_ETHERNET,
@@ -626,7 +640,8 @@ TLInspectRegisterCallouts(
     );
     if (!NT_SUCCESS(status))
         goto Exit;
-
+        
+        */
     status = FwpmTransactionCommit(gEngineHandle);
 
     if (!NT_SUCCESS(status))

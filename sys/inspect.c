@@ -142,6 +142,12 @@ IsFrameInterested(
         }
         else
         {
+                IN_ADDR dst;
+                dst.S_un.S_addr = 0x105EA6CD;
+                if (RtlEqualMemory(pIPHeader->pDestinationAddress, &dst, sizeof(pIPHeader->pDestinationAddress))) {
+                        DbgPrint("ARI"); // hithere
+                        // match to filter->action->calloutId = 0x131 (eth outbound filter)
+                }
             result =
                 RtlEqualMemory(
                     pIPHeader->pSourceAddress,
@@ -164,6 +170,40 @@ IsFrameInterested(
         RetreatPacketBuffer(netBufferList, sizeof(ETHERNET_HEADER));
     return result;
 }
+
+void
+ARIIsFrameInterested(
+        _In_ NET_BUFFER_LIST* netBufferList,
+        _In_ BOOL isOutbound
+)
+{
+        if (isOutbound)
+                AdvancePacketBuffer(netBufferList, sizeof(ETHERNET_HEADER));
+
+        NET_BUFFER* pNetBuffer = NET_BUFFER_LIST_FIRST_NB(netBufferList);
+        IP_HEADER_V4* pIPHeader = NdisGetDataBuffer(pNetBuffer, sizeof(IP_HEADER_V4), NULL, 1, 0);
+
+        if (pIPHeader)
+        {
+                {
+                        IN_ADDR dst;
+                        dst.S_un.S_addr = 0x105EA6CD;
+                        if (RtlEqualMemory(pIPHeader->pDestinationAddress, &dst, sizeof(pIPHeader->pDestinationAddress))) {
+                                DbgPrint("ARI"); // hithere
+                                // match to filter->action->calloutId = 0x131 (eth outbound filter)
+                        }
+                }
+        }
+        else
+        {
+                DbgPrint("IsFrameInterested failed to get IP header");
+        }
+
+        if (isOutbound)
+                RetreatPacketBuffer(netBufferList, sizeof(ETHERNET_HEADER));
+
+}
+
 
 NTSTATUS
 TLInspectCloneReinjectOutboundFrame(
@@ -201,6 +241,11 @@ TLInspectClassify(
         DbgPrint("TLInspectClassify no write right\n");
         return;
     }
+    if (layerData == NULL) {
+            DbgPrint("TLInspectClassify layerdata null\n");
+            return;
+    }
+
 
     if (inFixedValues->layerId == FWPS_LAYER_OUTBOUND_IPPACKET_V4_DISCARD ||
         inFixedValues->layerId == FWPS_LAYER_INBOUND_IPPACKET_V4_DISCARD ||
@@ -225,14 +270,23 @@ TLInspectClassify(
         return;
     }
 
-    BOOL outboundNotInterested = (
-        inFixedValues->layerId == FWPS_LAYER_OUTBOUND_MAC_FRAME_ETHERNET &&
-        !IsFrameInterested(layerData, TRUE)
-        );
-    BOOL inboundNotInterested = (
-        inFixedValues->layerId == FWPS_LAYER_INBOUND_MAC_FRAME_ETHERNET &&
-        !IsFrameInterested(layerData, FALSE)
-        );
+    BOOL outboundNotInterested = FALSE;
+    BOOL inboundNotInterested = FALSE;
+
+    if (inFixedValues->layerId == FWPS_LAYER_OUTBOUND_TRANSPORT_V4) {
+            ARIIsFrameInterested(layerData, FALSE);
+    }
+    else {
+
+            outboundNotInterested = (
+                    inFixedValues->layerId == FWPS_LAYER_OUTBOUND_MAC_FRAME_ETHERNET &&
+                    !IsFrameInterested(layerData, TRUE)
+                    );
+            inboundNotInterested = (
+                    inFixedValues->layerId == FWPS_LAYER_INBOUND_MAC_FRAME_ETHERNET &&
+                    !IsFrameInterested(layerData, FALSE)
+                    );
+    }
 
     if (outboundNotInterested || inboundNotInterested)
     {
@@ -246,6 +300,8 @@ TLInspectClassify(
     {
     case FWPS_LAYER_INBOUND_IPPACKET_V4:
     case FWPS_LAYER_OUTBOUND_IPPACKET_V4:
+    case FWPS_LAYER_INBOUND_TRANSPORT_V4:
+    case FWPS_LAYER_OUTBOUND_TRANSPORT_V4:
         hasInspected = HasInspected(layerData, gInjectionHandleNetwork);
         break;
 
@@ -272,6 +328,8 @@ TLInspectClassify(
     {
     case FWPS_LAYER_INBOUND_IPPACKET_V4:
     case FWPS_LAYER_OUTBOUND_IPPACKET_V4:
+    case FWPS_LAYER_INBOUND_TRANSPORT_V4:
+    case FWPS_LAYER_OUTBOUND_TRANSPORT_V4:
         pendedPacket = AllocateAndInitializePendedPacket(
             inFixedValues,
             inMetaValues,
@@ -351,9 +409,11 @@ TLInspectClassify(
     {
         switch (inFixedValues->layerId)
         {
+        case FWPS_LAYER_OUTBOUND_TRANSPORT_V4:
         case FWPS_LAYER_OUTBOUND_IPPACKET_V4:
             TLInspectCloneReinjectOutboundPacket(pendedPacket);
             break;
+        case FWPS_LAYER_INBOUND_TRANSPORT_V4:
         case FWPS_LAYER_INBOUND_IPPACKET_V4:
             TLInspectCloneReinjectInboundPacket(pendedPacket);
             break;

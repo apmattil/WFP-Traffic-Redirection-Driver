@@ -26,10 +26,12 @@ FWP_DIRECTION GetDirectionForLayer(
     switch (layerId)
     {
     case FWPS_LAYER_OUTBOUND_IPPACKET_V4:
+    case FWPS_LAYER_OUTBOUND_TRANSPORT_V4:
     case FWPS_LAYER_OUTBOUND_MAC_FRAME_ETHERNET:
         direction = FWP_DIRECTION_OUTBOUND;
         break;
     case FWPS_LAYER_INBOUND_IPPACKET_V4:
+    case FWPS_LAYER_INBOUND_TRANSPORT_V4:
     case FWPS_LAYER_INBOUND_MAC_FRAME_ETHERNET:
         direction = FWP_DIRECTION_INBOUND;
         break;
